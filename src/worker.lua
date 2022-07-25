@@ -20,17 +20,20 @@ function Worker.new()
     self.active_task = false
     self.queue = {}
     self.dead = false
-    self.pos_acc = o.entity.position
+    self.pos_acc = self.entity.position
     self.time_acc = game.tick
 
     table.insert(global.workers, self)
+    self.index = #global.workers
 
     return self
 end
 
 function Worker.enqueue(self, task)
-    local time_cost = Worker.task_price(self, task)
+    local time_cost = Worker.relative_task_price(self, task)
     self.time_acc = self.time_acc + time_cost
+    self.pos_acc = task.pos
+    lv('New acc state', self.time_acc, self.pos_acc)
     table.insert(self.queue, task)
 end
 
@@ -40,7 +43,8 @@ function Worker.death(self, e)
 end
 
 function Worker.predict_travel_time(self, pos)
-    local x1, y1 = self.entity.position.x, self.entity.position.y
+    local x1, y1 = self.pos_acc.x or self.pos_acc[1],
+                   self.pos_acc.y or self.pos_acc[2]
     local x2, y2 = pos.x or pos[1], pos.y or pos[2]
     local dx = math.abs(x1 - x2)
     local dy = math.abs(y1 - y2)
@@ -55,17 +59,13 @@ end
 
 function Worker.predict_mine_time(self, entity) return 0 end
 
-function Worker.task_price(self, task)
-    local time = math.max(self.time_acc, game.tick)
-    local time = time + Worker.predict_travel_time(self, task.pos)
-    if task.type == "mine" then
-    elseif task.type == "place" or task.type == "take" or task.type == "put" or
-        task.type == "walk" then
-        -- no extra time
-    else
-        le('invalid task type "' .. tostring(task.type) .. '"')
-    end
-    return time
+function Worker.relative_task_price(self, task)
+    return Worker.predict_travel_time(self, task.pos)
+end
+
+function Worker.absolute_task_price(self, task)
+    return math.max(self.time_acc, game.tick) +
+               Worker.relative_task_price(self, task)
 end
 
 function Worker.prepare_task(self)

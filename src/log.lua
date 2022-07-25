@@ -7,7 +7,7 @@ function bwlog(level, ...)
         line = line .. '\t' .. tostring(v)
     end
     game.print(line)
-    print(line)
+    log(line)
 end
 
 function le(...) bwlog('err', table.unpack({...})) end
