@@ -6,6 +6,14 @@ function dist(pos1, pos2)
     return math.sqrt((x1 - x2) ^ 2 + (y1 - y2) ^ 2)
 end
 
+function table_copy(a, c)
+    c = c or {}
+    for k, v in pairs(a) do
+	    c[k] = v
+    end
+    return c
+end
+
 function dir(a, b)
     local x1 = a.x or a[1]
     local y1 = a.y or a[2]

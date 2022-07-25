@@ -3,10 +3,8 @@ require('log')
 
 Worker = {}
 
-function Worker:new(o)
-    o = o or {}
-    setmetatable(o, self)
-    self.__index = self
+function Worker.new(o)
+    local o = o or {}
 
     o.entity = game.surfaces[1].create_entity {
         name = "beltwiz-character",
@@ -28,14 +26,14 @@ function Worker:new(o)
     return o
 end
 
-function Worker:enqueue(task) table.insert(self.queue, task) end
+function Worker.enqueue(self, task) table.insert(self.queue, task) end
 
-function Worker:death(e)
+function Worker.death(self, e)
     self.dead = true
     li('Worker died')
 end
 
-function Worker:prepare_task()
+function Worker.prepare_task(self)
     if not self.active_task then return false end
 
     local distance = dist(self.entity.position, self.active_task.pos)
@@ -48,7 +46,7 @@ function Worker:prepare_task()
     return not too_far
 end
 
-function Worker:tick()
+function Worker.tick(self)
     if self.dead then return end
 
     if not self.active_task then
@@ -56,7 +54,7 @@ function Worker:tick()
             self.active_task = table.remove(self.queue, 1)
         end
     else
-        if not self:prepare_task() then
+        if not Worker.prepare_task(self) then
             -- waiting for task preparation
         else
             self.active_task = false

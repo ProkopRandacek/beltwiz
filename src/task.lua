@@ -1,15 +1,13 @@
 Task = {}
 
-function Task:new(o, pos, items)
-    o = o or {}
-    setmetatable(o, self)
-    self.__index = self
-    o.pos = pos
-    o.pre_items = items
-    return o
+function Task.new(self, pos, items)
+    self = self or {}
+    self.pos = pos
+    self.pre_items = items
+    return self
 end
 
-function Task:dependencies() end
+function Task.dependencies(self) end
 
 return Task
 

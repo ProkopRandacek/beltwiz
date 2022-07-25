@@ -1,12 +1,10 @@
 Multiplexer = {}
 
-function Multiplexer:new(o)
-    o = o or {}
-    setmetatable(o, self)
-    self.__index = self
-    return o
+function Multiplexer.new(self)
+    self = self or {}
+    return self
 end
 
-function Multiplexer:eatTask(t) end
+function Multiplexer.eatTask(self, t) end
 
 return Multiplexer
