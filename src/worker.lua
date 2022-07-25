@@ -26,11 +26,30 @@ function Worker.new(o)
     return o
 end
 
-function Worker.enqueue(self, task) table.insert(self.queue, task) end
+function Worker.enqueue(self, task)
+    local travel_time = Worker.predict_walk_time(self, task.pos)
+    li("I will be there in " .. travel_time .. "s")
+    table.insert(self.queue, task)
+end
 
 function Worker.death(self, e)
     self.dead = true
     li('Worker died')
+end
+
+function Worker.predict_walk_time(self, pos)
+    local x1, y1 = self.entity.position.x, self.entity.position.y
+    local x2, y2 = pos.x or pos[1], pos.y or pos[2]
+    local dx = math.abs(x1 - x2)
+    local dy = math.abs(y1 - y2)
+    local shorter_side = math.min(dx, dy)
+    local longer_side = math.max(dx, dy)
+    local diagonal_path = math.sqrt((shorter_side ^ 2) * 2)
+    local straight_path = longer_side - shorter_side
+    local path = diagonal_path + straight_path
+    local speed = self.entity.character_running_speed * 60 -- tiles per second
+    local time = path / speed
+    return time
 end
 
 function Worker.prepare_task(self)
