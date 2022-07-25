@@ -23,6 +23,16 @@ end)
 commands.add_command("bww-come", nil, function(command)
     local p = game.get_player(command.player_index)
     local id = tonumber(command.parameter)
+    if not id then
+        game.print('argument "' .. (command.parameter or "") ..
+                       '" is not numeric')
+        return
+    end
+    local worker = global.workers[id]
+    if not worker then
+        game.print('id ' .. tostring(id) .. ' is not valid worker id')
+        return
+    end
     t = Task:new({}, p.position)
     global.workers[id]:enqueue(t)
 end)
