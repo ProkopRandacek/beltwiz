@@ -1,8 +1,8 @@
 require('util')
 require('log')
+require('dispatcher')
 Worker = require('worker')
 Task = require('task')
-Multiplexer = require('multiplexer')
 
 function on_load() end
 
@@ -20,6 +20,12 @@ commands.add_command("bw-workers", nil, function(command)
     for k, v in pairs(global.workers) do li(k, v) end
 end)
 
+commands.add_command("bwd-come", nil, function(command)
+    local p = game.get_player(command.player_index)
+    t = Task.walk(p.position)
+    dispatch_task(t)
+end)
+
 commands.add_command("bww-come", nil, function(command)
     local p = game.get_player(command.player_index)
     local id = tonumber(command.parameter)
@@ -33,7 +39,7 @@ commands.add_command("bww-come", nil, function(command)
         game.print('id ' .. tostring(id) .. ' is not valid worker id')
         return
     end
-    t = Task.new({}, p.position)
+    t = Task.walk(p.position)
     Worker.enqueue(global.workers[id], t)
 end)
 

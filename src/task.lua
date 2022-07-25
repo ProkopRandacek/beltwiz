@@ -1,13 +1,18 @@
 Task = {}
 
-function Task.new(self, pos, items)
-    self = self or {}
-    self.pos = pos
-    self.pre_items = items
-    return self
+function Task.walk(pos) return {type = "walk", pos = pos} end
+
+function Task.place(item, pos, dir)
+    return {type = "place", pos = entity.position, item = item, direction = dir}
 end
 
-function Task.dependencies(self) end
+function Task.mine(entity)
+    return {type = "mine", pos = entity.position, entity = entity}
+end
+
+-- TODO
+-- take item
+-- put item
 
 return Task
 
