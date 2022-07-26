@@ -7,14 +7,14 @@ function Worker.new()
     local self = {}
 
     self.entity = game.surfaces[1].create_entity {
-        name = "beltwiz-character",
+        name = 'beltwiz-character',
         position = {0, 0},
         direction = 3,
-        force = "player",
+        force = 'player',
         fast_replace = true
     }
-    self.entity.insert({name = "burner-mining-drill", count = 1}) -- the starting inventory
-    self.entity.insert({name = "stone-furnace", count = 1})
+    self.entity.insert({name = 'burner-mining-drill', count = 1}) -- the starting inventory
+    self.entity.insert({name = 'stone-furnace', count = 1})
     self.entity.color = {r = 103 / 255, g = 176 / 255, b = 232 / 255}
 
     self.active_task = false
@@ -64,21 +64,68 @@ function Worker.relative_task_price(self, task)
 end
 
 function Worker.absolute_task_price(self, task)
-    return math.max(self.time_acc, game.tick) +
-               Worker.relative_task_price(self, task)
+    local time_base = math.max(self.time_acc, game.tick)
+    return time_base + Worker.relative_task_price(self, task)
 end
 
 function Worker.prepare_task(self)
     if not self.active_task then return false end
 
     local distance = dist(self.entity.position, self.active_task.pos)
-    local too_far = distance > 1
+    local too_far = distance > 2
     self.entity.walking_state = {
         walking = too_far,
         direction = dir(self.entity.position, self.active_task.pos)
     }
 
     return not too_far
+end
+
+function Worker.place(self, item, pos, dir)
+    local item_count = self.entity.get_main_inventory().get_item_count(item)
+    if item_count < 1 then
+        lp('Trying to place', item,
+           'but worker doesn\'t have it in his inventory')
+    end
+
+    local surface = game.surfaces[1]
+    if surface.can_place_entity {name = item, position = pos, direction = dir} then
+        local fr = surface.can_fast_replace {
+            name = item,
+            position = pos,
+            direction = dir,
+            force = "player"
+        }
+        if surface.create_entity {
+            name = item,
+            position = pos,
+            direction = dir,
+            force = "player",
+            fast_replace = fr
+        } then
+            self.entity.remove_item({name = item, count = 1})
+            lv("placed", item, "at", pos)
+        end
+    else
+        lp('cannot place', item, 'at', pos)
+    end
+    return true
+end
+
+function Worker.mine(self, entity) return false end
+
+function Worker.do_task(self)
+    local t = self.active_task
+    local tt = t.type
+
+    if tt == "place" then
+        return Worker.place(self, t.item, t.pos, t.dir)
+    elseif tt == "mine" then
+    elseif tt == "walk" then
+        return true
+    else
+        lp('invalid task type: ', tt)
+    end
 end
 
 function Worker.tick(self)
@@ -92,8 +139,8 @@ function Worker.tick(self)
         if not Worker.prepare_task(self) then
             -- waiting for task preparation
         else
-            -- do task
-            self.active_task = false
+            local done = Worker.do_task(self)
+            if done then self.active_task = false end
         end
     end
 

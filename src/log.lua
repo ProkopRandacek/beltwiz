@@ -8,8 +8,10 @@ function bwlog(level, ...)
     end
     game.print(line)
     log(line)
+    return line
 end
 
+function lp(...) error(bwlog('pan', table.unpack({...}))) end
 function le(...) bwlog('err', table.unpack({...})) end
 function lw(...) bwlog('war', table.unpack({...})) end
 function li(...) bwlog('inf', table.unpack({...})) end
