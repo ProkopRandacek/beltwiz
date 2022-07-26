@@ -17,10 +17,13 @@ function Task.mine(entity)
     return {type = 'mine', pos = entity.position, entity = entity}
 end
 
+function Task.group(tasks)
+    return {type = 'group', tasks = tasks}
+end
+
 -- TODO
 -- take item
 -- put item
--- group
 
 return Task
 

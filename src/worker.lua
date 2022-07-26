@@ -33,7 +33,6 @@ function Worker.enqueue(self, task)
     local time_cost = Worker.relative_task_price(self, task)
     self.time_acc = self.time_acc + time_cost
     self.pos_acc = task.pos
-    lv('New acc state', self.time_acc, self.pos_acc)
     table.insert(self.queue, task)
 end
 
@@ -57,10 +56,19 @@ function Worker.predict_travel_time(self, pos)
     return time
 end
 
-function Worker.predict_mine_time(self, entity) return 0 end
+function Worker.predict_mine_time(self, entity)
+    local mining_speed = entity.prototype.mineable_properties.mining_time
+    local mining_time = self.entity.prototype.mining_speed
+    return mining_speed / mining_time
+end
 
 function Worker.relative_task_price(self, task)
-    return Worker.predict_travel_time(self, task.pos)
+    local t = 0.0
+    t = t + Worker.predict_travel_time(self, task.pos)
+    if task.type == 'mine' then
+        t = t + Worker.predict_mine_time(self, task.entity)
+    end
+    return t
 end
 
 function Worker.absolute_task_price(self, task)
@@ -102,17 +110,23 @@ function Worker.place(self, item, pos, dir)
             direction = dir,
             force = "player",
             fast_replace = fr
-        } then
-            self.entity.remove_item({name = item, count = 1})
-            lv("placed", item, "at", pos)
-        end
+        } then self.entity.remove_item({name = item, count = 1}) end
     else
         lp('cannot place', item, 'at', pos)
     end
     return true
 end
 
-function Worker.mine(self, entity) return false end
+function Worker.mine(self, entity)
+    if entity and entity.valid then
+        self.entity.selected = entity
+        self.entity.mining_state = {mining = true, position = entity.position}
+        return false
+    else
+        self.entity.mining_state = {mining = false}
+        return true
+    end
+end
 
 function Worker.do_task(self)
     local t = self.active_task
@@ -121,6 +135,7 @@ function Worker.do_task(self)
     if tt == "place" then
         return Worker.place(self, t.item, t.pos, t.dir)
     elseif tt == "mine" then
+        return Worker.mine(self, t.entity)
     elseif tt == "walk" then
         return true
     else

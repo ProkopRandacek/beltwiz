@@ -22,12 +22,19 @@ end)
 
 commands.add_command('bwd-come', nil, function(command)
     local p = game.get_player(command.player_index)
-    t = Task.walk(p.position)
+    local t = Task.walk(p.position)
     dispatch_task(t)
 end)
 
 commands.add_command('bw-test', nil, function(command)
-    dispatch_task(Task.place('burner-mining-drill', {20.5, 5.5}, 0))
+    local tasks = {}
+    local surface = game.surfaces[1]
+    for _, e in pairs(surface.find_entities_filtered {
+        position = {0, 0},
+        radius = 100,
+        type = 'tree'
+    }) do table.insert(tasks, Task.mine(e)) end
+    dispatch_task(Task.group(tasks))
 end)
 
 commands.add_command('bww-come', nil, function(command)
