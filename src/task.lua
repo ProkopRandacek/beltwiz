@@ -17,8 +17,14 @@ function Task.mine(entity)
     return {type = 'mine', pos = entity.position, entity = entity}
 end
 
-function Task.group(tasks)
-    return {type = 'group', tasks = tasks}
+function Task.group(tasks) return {type = 'group', tasks = tasks} end
+
+function Task.craft(item, count)
+    local recipe = game.recipe_prototypes[item]
+    if not recipe then
+	    lp('"'..item..'" is not recipe')
+    end
+    return {type = 'craft', item = item, count = count or 1}
 end
 
 -- TODO

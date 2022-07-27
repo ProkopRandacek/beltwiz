@@ -1,6 +1,7 @@
 require('util')
 require('log')
 require('dispatcher')
+Brain = require('brain')
 Worker = require('worker')
 Task = require('task')
 
@@ -20,11 +21,15 @@ commands.add_command('bw-workers', nil, function(command)
     for k, v in pairs(global.workers) do li(k, v) end
 end)
 
+commands.add_command('bwb-circle', nil, function(command) Brain.circle(10) end)
+
 commands.add_command('bwd-come', nil, function(command)
     local p = game.get_player(command.player_index)
     local t = Task.walk(p.position)
     dispatch_task(t)
 end)
+
+commands.add_command('bw-start', nil, function(command) Brain.init() end)
 
 commands.add_command('bw-test', nil, function(command)
     local tasks = {}

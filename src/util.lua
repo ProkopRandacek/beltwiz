@@ -23,8 +23,7 @@ function dir(a, b)
     local delta_x = x2 - x1
     local delta_y = y2 - y1
 
-    local eps = 1
-
+    local eps = 0.2
     if delta_x > eps then
         if delta_y > eps then
             return defines.direction.southeast

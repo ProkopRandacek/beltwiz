@@ -22,9 +22,17 @@ function Worker.new()
     self.dead = false
     self.pos_acc = self.entity.position
     self.time_acc = game.tick
+    self.crafting = false
+
+    self.index = #global.workers
+
+    self.tag = self.entity.force.add_chart_tag(game.surfaces[1], {
+        position = self.entity.position,
+        text = tostring(self.index),
+        icon = {type = 'virtual', name = 'signal-dot'}
+    })
 
     table.insert(global.workers, self)
-    self.index = #global.workers
 
     return self
 end
@@ -32,7 +40,7 @@ end
 function Worker.enqueue(self, task)
     local time_cost = Worker.relative_task_price(self, task)
     self.time_acc = self.time_acc + time_cost
-    self.pos_acc = task.pos
+    self.pos_acc = task.pos or {0, 0}
     table.insert(self.queue, task)
 end
 
@@ -42,6 +50,7 @@ function Worker.death(self, e)
 end
 
 function Worker.predict_travel_time(self, pos)
+    if not pos then return 0 end
     local x1, y1 = self.pos_acc.x or self.pos_acc[1],
                    self.pos_acc.y or self.pos_acc[2]
     local x2, y2 = pos.x or pos[1], pos.y or pos[2]
@@ -78,13 +87,15 @@ end
 
 function Worker.prepare_task(self)
     if not self.active_task then return false end
+    if not self.active_task.pos then return true end -- can be done anywhere
 
     local distance = dist(self.entity.position, self.active_task.pos)
-    local too_far = distance > 2
+    local too_far = distance > 0.3
     self.entity.walking_state = {
         walking = too_far,
         direction = dir(self.entity.position, self.active_task.pos)
     }
+    if not too_far then self.entity.teleport(self.active_task.pos) end
 
     return not too_far
 end
@@ -128,6 +139,24 @@ function Worker.mine(self, entity)
     end
 end
 
+function Worker.craft(self, item, count)
+    if not self.crafting then -- start crafting
+        local c = self.entity.begin_crafting {recipe = item, count = count}
+        if c ~= count then
+            lp('wanted to craft', item, count, 'times but can only', c)
+        end
+        self.crafting = true
+        return false
+    else -- wait until it is done
+        if self.entity.crafting_queue_progress == 0 then
+            return false
+        else
+            self.crafting = false
+            return true
+        end
+    end
+end
+
 function Worker.do_task(self)
     local t = self.active_task
     local tt = t.type
@@ -136,6 +165,8 @@ function Worker.do_task(self)
         return Worker.place(self, t.item, t.pos, t.dir)
     elseif tt == "mine" then
         return Worker.mine(self, t.entity)
+    elseif tt == "craft" then
+        return Worker.craft(self, t.item, t.count)
     elseif tt == "walk" then
         return true
     else
@@ -164,6 +195,13 @@ function Worker.tick(self)
     b.force.chart(b.surface, {
         {b.position.x - r, b.position.y - r},
         {b.position.x + r, b.position.y + r}
+    })
+
+    self.tag.destroy()
+    self.tag = self.entity.force.add_chart_tag(game.surfaces[1], {
+        position = self.entity.position,
+        text = tostring(self.index),
+        icon = {type = 'virtual', name = 'signal-dot'}
     })
 end
 
