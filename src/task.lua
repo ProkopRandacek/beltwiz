@@ -21,15 +21,25 @@ function Task.group(tasks) return {type = 'group', tasks = tasks} end
 
 function Task.craft(item, count)
     local recipe = game.recipe_prototypes[item]
-    if not recipe then
-	    lp('"'..item..'" is not recipe')
-    end
+    if not recipe then lp('"' .. item .. '" is not recipe') end
     return {type = 'craft', item = item, count = count or 1}
+end
+
+function Task.put(item, count, entity, slot)
+    local it = game.item_prototypes[item]
+    if not it then lp('"' .. item .. '" is not item') end
+    return {
+        type = 'put',
+        pos = entity.position,
+        item = item,
+        count = count,
+        entity = entity,
+        slot = slot
+    }
 end
 
 -- TODO
 -- take item
--- put item
 
 return Task
 

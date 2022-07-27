@@ -10,8 +10,7 @@ function Worker.new()
         name = 'beltwiz-character',
         position = {0, 0},
         direction = 3,
-        force = 'player',
-        fast_replace = true
+        force = 'player'
     }
     self.entity.insert({name = 'burner-mining-drill', count = 1}) -- the starting inventory
     self.entity.insert({name = 'stone-furnace', count = 1})
@@ -101,7 +100,9 @@ function Worker.prepare_task(self)
 end
 
 function Worker.place(self, item, pos, dir)
-    local item_count = self.entity.get_main_inventory().get_item_count(item)
+    local item_count = self.entity.get_inventory(defines.inventory
+                                                     .character_main)
+                           .get_item_count(item)
     if item_count < 1 then
         lp('Trying to place', item,
            'but worker doesn\'t have it in his inventory')
@@ -109,18 +110,12 @@ function Worker.place(self, item, pos, dir)
 
     local surface = game.surfaces[1]
     if surface.can_place_entity {name = item, position = pos, direction = dir} then
-        local fr = surface.can_fast_replace {
-            name = item,
-            position = pos,
-            direction = dir,
-            force = "player"
-        }
         if surface.create_entity {
             name = item,
             position = pos,
             direction = dir,
-            force = "player",
-            fast_replace = fr
+            force = 'player',
+            move_stuck_players = true
         } then self.entity.remove_item({name = item, count = 1}) end
     else
         lp('cannot place', item, 'at', pos)
@@ -148,7 +143,8 @@ function Worker.craft(self, item, count)
         self.crafting = true
         return false
     else -- wait until it is done
-        if self.entity.crafting_queue_progress == 0 then
+        lv(self.entity.crafting_queue_progress)
+        if self.entity.crafting_queue_progress > 0 then
             return false
         else
             self.crafting = false
@@ -157,21 +153,39 @@ function Worker.craft(self, item, count)
     end
 end
 
+function Worker.put(self, item, count, entity, slot)
+    local selfinv = self.entity.get_inventory(defines.inventory.character_main)
+    local trginv = entity.get_inventory(slot)
+
+    local c = selfinv.get_item_count(item)
+    if c < count then lp('cant put', count, 'of', item, '. I only have', c) end
+    self.entity.selected = entity
+    self.entity.remove_item {name = item, count = count}
+    entity.get_inventory(slot).insert {name = item, count = count}
+    return true
+end
+
 function Worker.do_task(self)
     local t = self.active_task
     local tt = t.type
 
-    if tt == "place" then
+    if tt == 'place' then
         return Worker.place(self, t.item, t.pos, t.dir)
-    elseif tt == "mine" then
+    elseif tt == 'mine' then
         return Worker.mine(self, t.entity)
-    elseif tt == "craft" then
+    elseif tt == 'craft' then
         return Worker.craft(self, t.item, t.count)
-    elseif tt == "walk" then
+    elseif tt == 'put' then
+        return Worker.put(self, t.item, t.count, t.entity, t.slot)
+    elseif tt == 'walk' then
         return true
     else
         lp('invalid task type: ', tt)
     end
+end
+
+function Worker.is_idle(self)
+    return (not self.active_task) and (not self.queue[1])
 end
 
 function Worker.tick(self)
@@ -180,6 +194,8 @@ function Worker.tick(self)
     if not self.active_task then
         if self.queue[1] then
             self.active_task = table.remove(self.queue, 1)
+        else
+            Brain.on_worker_queue_done()
         end
     else
         if not Worker.prepare_task(self) then

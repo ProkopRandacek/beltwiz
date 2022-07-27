@@ -7,7 +7,7 @@ Task = require('task')
 
 function on_load() end
 
-function on_init() global.workers = {} end
+function on_init() global.workers = {} global.brain_step = 1 end
 
 script.on_load(on_load)
 
@@ -29,7 +29,7 @@ commands.add_command('bwd-come', nil, function(command)
     dispatch_task(t)
 end)
 
-commands.add_command('bw-start', nil, function(command) Brain.init() end)
+commands.add_command('bw-start', nil, function(command) Brain.step() end)
 
 commands.add_command('bw-test', nil, function(command)
     local tasks = {}
