@@ -1,3 +1,4 @@
+require('util')
 Task = {}
 
 function Task.walk(pos) return {type = 'walk', pos = pos} end

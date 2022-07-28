@@ -38,9 +38,8 @@ commands.add_command('waila', nil, function(command)
 end)
 
 commands.add_command('bw-test', nil, function(command)
-    lv(Brain.recipe_to_raw_items(game.recipe_prototypes['steam-engine']))
-    lv(Brain.recipe_to_raw_items(game.recipe_prototypes['boiler']))
-    lv(Brain.recipe_to_raw_items(game.recipe_prototypes['offshore-pump']))
+    local ores = game.surfaces[1].find_entities_filtered {name = 'iron-ore'}
+    for i = 1, 5 do dispatch_task(Task.mine(ores[i])) end
 end)
 
 commands.add_command('bww-come', nil, function(command)

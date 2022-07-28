@@ -23,6 +23,9 @@ function Worker.new()
     self.time_acc = game.tick
     self.crafting = false
 
+    self.mining = false
+    self.last_mine_progress = 2
+
     self.index = #global.workers
 
     self.tag = self.entity.force.add_chart_tag(game.surfaces[1], {
@@ -149,13 +152,32 @@ function Worker.place(self, item, pos, dir)
 end
 
 function Worker.mine(self, entity)
-    if entity and entity.valid then
+    if not self.mining then -- start mining
+        self.last_mine_progress = 0
+        if not (entity and entity.valid) then
+            le('entity gone!')
+            return true
+        end
         self.entity.selected = entity
         self.entity.mining_state = {mining = true, position = entity.position}
+        self.mining = true
         return false
-    else
-        self.entity.mining_state = {mining = false}
-        return true
+    else -- keep mining
+        local curr_mine_progress = self.entity.character_mining_progress
+        if curr_mine_progress > self.last_mine_progress and curr_mine_progress ~=
+            0 then
+            self.last_mine_progress = curr_mine_progress
+            self.entity.selected = entity
+            self.entity.mining_state = {
+                mining = true,
+                position = entity.position
+            }
+            return false
+        else -- mine done
+            self.entity.mining_state = {mining = false}
+            self.mining = false
+            return true
+        end
     end
 end
 
