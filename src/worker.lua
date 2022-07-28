@@ -49,10 +49,10 @@ function Worker.death(self, e)
     li('Worker died')
 end
 
-function Worker.predict_travel_time(self, pos)
+function Worker.predict_travel_time(self, pos, pos_override)
     if not pos then return 0 end
-    local x1, y1 = self.pos_acc.x or self.pos_acc[1],
-                   self.pos_acc.y or self.pos_acc[2]
+    local self_pos = pos_override or self.pos_acc
+    local x1, y1 = self_pos.x or self_pos[1], self_pos.y or self_pos[2]
     local x2, y2 = pos.x or pos[1], pos.y or pos[2]
     local dx = math.abs(x1 - x2)
     local dy = math.abs(y1 - y2)
@@ -68,19 +68,19 @@ end
 function Worker.predict_mine_time(self, entity)
     local mining_speed = entity.prototype.mineable_properties.mining_time
     local mining_time = self.entity.prototype.mining_speed
-    return mining_speed / mining_time
+    return (mining_speed / mining_time) * 60
 end
 
 function Worker.predict_craft_time(self, item)
     local craft_speed = 1
     local recipe = game.recipe_prototypes[item]
     local craft_time = recipe.energy
-    return craft_time / craft_speed
+    return (craft_time / craft_speed) * 60
 end
 
-function Worker.relative_single_task_price(self, task)
+function Worker.relative_single_task_price(self, task, pos_override)
     local t = 0.0
-    t = t + Worker.predict_travel_time(self, task.pos)
+    t = t + Worker.predict_travel_time(self, task.pos, pos_override)
     if task.type == 'craft' then
         t = t + Worker.predict_craft_time(self, task.item)
     elseif task.type == 'mine' then
@@ -89,15 +89,17 @@ function Worker.relative_single_task_price(self, task)
     return t
 end
 
-function Worker.relative_task_price(self, task)
+function Worker.relative_task_price(self, task, pos_override)
     if task.type == 'seq' then
         local t = 0
+        local pos_ac = pos_override
         for i, st in ipairs(task.tasks) do
-            t = t + Worker.relative_task_price(self, st)
+            t = t + Worker.relative_task_price(self, st, pos_ac)
+            pos_ac = st.pos or pos_ac
         end
         return t
     else
-        return Worker.relative_single_task_price(self, task)
+        return Worker.relative_single_task_price(self, task, pos_override)
     end
 end
 

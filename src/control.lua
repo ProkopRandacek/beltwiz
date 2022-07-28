@@ -39,12 +39,10 @@ end)
 
 commands.add_command('bw-test', nil, function(command)
     dispatch_task(Task.seq {
-        [1] = Task.mine(b_tree),
+        [1] = Task.mine(game.players[1].selected),
         [2] = Task.craft('wooden-chest'),
-        [3] = Task.place('wooden-chest', {0, 0})
+        [3] = Task.place('wooden-chest', game.players[1].position),
     })
-    -- local ore = game.surfaces[1].find_entities_filtered{name='iron-ore'}[1]
-    -- dispatch_task(Task.mine(ore))
 end)
 
 commands.add_command('bww-come', nil, function(command)
