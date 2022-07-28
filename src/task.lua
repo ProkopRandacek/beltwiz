@@ -17,7 +17,18 @@ function Task.mine(entity)
     return {type = 'mine', pos = entity.position, entity = entity}
 end
 
+-- group can be dispatched between many workers
 function Task.group(tasks) return {type = 'group', tasks = tasks} end
+
+-- seq has to be done by the same worker in seqence
+function Task.seq(tasks)
+    local pos = false
+    for i = #tasks, 1, -1 do -- the last task that has a position
+        pos = tasks[i].pos
+        if pos then break end
+    end
+    return {type = 'seq', tasks = tasks, pos = pos}
+end
 
 function Task.craft(item, count)
     local recipe = game.recipe_prototypes[item]

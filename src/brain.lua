@@ -5,24 +5,10 @@ require('worker')
 
 Brain = {}
 
-function Brain.boot_cleanup()
+function Brain.boot1()
     for i = 1, 16 do Worker.new() end
     Brain.clean_ship()
-end
-
-function Brain.boot_chest_fill()
-    global.chest = game.surfaces[1].find_entities_filtered{
-        name = 'wooden-chest'
-    }[1]
-    for _, w in ipairs(global.workers) do
-        for name, count in pairs(w.entity.get_inventory(defines.inventory
-                                                            .character_main)
-                                     .get_contents()) do
-            Worker.enqueue(w, Task.put(name, count, global.chest,
-                                       defines.inventory.chest))
-        end
-    end
-    Brain.circle()
+    Brain.init_storage()
 end
 
 function Brain.clean_ship()
@@ -35,20 +21,6 @@ function Brain.clean_ship()
     }) do
         if e.prototype.mineable_properties.minable then
             dispatch_task(Task.mine(e))
-        end
-    end
-end
-
-function Brain.circle(c)
-    c = c or 0
-    for _ = 0, c do
-        Brain.circle_s = (Brain.circle_s or 0) + 1
-        local n = #global.workers
-        for i, w in ipairs(global.workers) do
-            Worker.enqueue(w, Task.walk {
-                x = math.sin(((i + Brain.circle_s) / n) * 2 * math.pi) * 5 + 0.5,
-                y = math.cos(((i + Brain.circle_s) / n) * 2 * math.pi) * 5 + 0.5
-            })
         end
     end
 end
@@ -72,17 +44,45 @@ function Brain.init_storage()
             end
         end
     end
-    Worker.enqueue(global.workers[1], Task.mine(b_tree))
-    Worker.enqueue(global.workers[1], Task.craft('wooden-chest'))
-    Worker.enqueue(global.workers[1], Task.place('wooden-chest', {0, 0}))
+    dispatch_task(Task.seq {
+        [1] = Task.mine(b_tree),
+        [2] = Task.craft('wooden-chest'),
+        [3] = Task.place('wooden-chest', {0, 0})
+    })
+end
+
+function Brain.boot2()
+    global.chest = game.surfaces[1].find_entities_filtered{
+        name = 'wooden-chest'
+    }[1]
+    for _, w in ipairs(global.workers) do
+        for name, count in pairs(w.entity.get_inventory(defines.inventory
+                                                            .character_main)
+                                     .get_contents()) do
+            local t = Task.put(name, count, global.chest,
+                               defines.inventory.chest)
+            Worker.enqueue(w, t)
+        end
+    end
+    Brain.circle()
+end
+
+function Brain.circle(c)
+    c = c or 0
+    for _ = 0, c do
+        Brain.circle_s = (Brain.circle_s or 0) + 1
+        local n = #global.workers
+        for i, w in ipairs(global.workers) do
+            Worker.enqueue(w, Task.walk {
+                x = math.sin(((i + Brain.circle_s) / n) * 2 * math.pi) * 5 + 0.5,
+                y = math.cos(((i + Brain.circle_s) / n) * 2 * math.pi) * 5 + 0.5
+            })
+        end
+    end
 end
 
 function Brain.step()
-    local steps = {
-        [1] = Brain.boot_cleanup,
-        [2] = Brain.init_storage,
-        [3] = Brain.boot_chest_fill
-    }
+    local steps = {[1] = Brain.boot1, [2] = Brain.boot2}
     (steps[global.brain_step] or function() end)()
     global.brain_step = global.brain_step + 1
 end

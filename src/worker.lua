@@ -37,6 +37,7 @@ function Worker.new()
 end
 
 function Worker.enqueue(self, task)
+    front = front or false
     local time_cost = Worker.relative_task_price(self, task)
     self.time_acc = self.time_acc + time_cost
     self.pos_acc = task.pos or {0, 0}
@@ -70,13 +71,34 @@ function Worker.predict_mine_time(self, entity)
     return mining_speed / mining_time
 end
 
-function Worker.relative_task_price(self, task)
+function Worker.predict_craft_time(self, item)
+    local craft_speed = 1
+    local recipe = game.recipe_prototypes[item]
+    local craft_time = recipe.energy
+    return craft_time / craft_speed
+end
+
+function Worker.relative_single_task_price(self, task)
     local t = 0.0
     t = t + Worker.predict_travel_time(self, task.pos)
-    if task.type == 'mine' then
+    if task.type == 'craft' then
+        t = t + Worker.predict_craft_time(self, task.item)
+    elseif task.type == 'mine' then
         t = t + Worker.predict_mine_time(self, task.entity)
     end
     return t
+end
+
+function Worker.relative_task_price(self, task)
+    if task.type == 'seq' then
+        local t = 0
+        for i, st in ipairs(task.tasks) do
+            t = t + Worker.relative_task_price(self, st)
+        end
+        return t
+    else
+        return Worker.relative_single_task_price(self, task)
+    end
 end
 
 function Worker.absolute_task_price(self, task)
@@ -87,6 +109,7 @@ end
 function Worker.prepare_task(self)
     if not self.active_task then return false end
     if not self.active_task.pos then return true end -- can be done anywhere
+    if self.active_task.type == 'seq' then return true end
 
     local distance = dist(self.entity.position, self.active_task.pos)
     local too_far = distance > 0.3
@@ -143,7 +166,6 @@ function Worker.craft(self, item, count)
         self.crafting = true
         return false
     else -- wait until it is done
-        lv(self.entity.crafting_queue_progress)
         if self.entity.crafting_queue_progress > 0 then
             return false
         else
@@ -178,6 +200,11 @@ function Worker.do_task(self)
     elseif tt == 'put' then
         return Worker.put(self, t.item, t.count, t.entity, t.slot)
     elseif tt == 'walk' then
+        return true
+    elseif tt == 'seq' then
+        for i = #t.tasks, 1, -1 do
+            table.insert(self.queue, 1, t.tasks[i])
+        end
         return true
     else
         lp('invalid task type: ', tt)
