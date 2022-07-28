@@ -8,9 +8,7 @@ end
 
 function table_copy(a, c)
     c = c or {}
-    for k, v in pairs(a) do
-	    c[k] = v
-    end
+    for k, v in pairs(a) do c[k] = v end
     return c
 end
 
@@ -49,5 +47,19 @@ function dir(a, b)
             return defines.direction.north
         end
     end
+end
+
+function extend(x, y)
+    z = {}
+    n = 0
+    for _, v in ipairs(x) do
+        n = n + 1;
+        z[n] = v
+    end
+    for _, v in ipairs(y) do
+        n = n + 1;
+        z[n] = v
+    end
+    return z
 end
 

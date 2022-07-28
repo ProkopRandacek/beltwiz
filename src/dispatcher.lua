@@ -13,7 +13,7 @@ function dispatch_task(task)
             best_worker = v
         end
     end
-    if best_worker == false then
+    if not best_worker then
         le('dispatcher found no workers')
     else
         Worker.enqueue(best_worker, task)

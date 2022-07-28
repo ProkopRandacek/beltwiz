@@ -38,11 +38,9 @@ commands.add_command('waila', nil, function(command)
 end)
 
 commands.add_command('bw-test', nil, function(command)
-    dispatch_task(Task.seq {
-        [1] = Task.mine(game.players[1].selected),
-        [2] = Task.craft('wooden-chest'),
-        [3] = Task.place('wooden-chest', game.players[1].position),
-    })
+    lv(Brain.recipe_to_raw_items(game.recipe_prototypes['steam-engine']))
+    lv(Brain.recipe_to_raw_items(game.recipe_prototypes['boiler']))
+    lv(Brain.recipe_to_raw_items(game.recipe_prototypes['offshore-pump']))
 end)
 
 commands.add_command('bww-come', nil, function(command)

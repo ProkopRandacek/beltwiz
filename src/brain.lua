@@ -81,8 +81,45 @@ function Brain.circle(c)
     end
 end
 
+function Brain.electricity()
+    local target_items = {
+        ['steam-engine'] = 1,
+        ['boiler'] = 1,
+        ['offshore-pump'] = 1
+    }
+
+    local raw_items = {}
+    for r, a in pairs(target_items) do
+        lv(r, a)
+        for k, v in pairs(Brain.recipe_to_raw_items(game.recipe_prototypes[r])) do
+            raw_items[k] = (raw_items[k] or 0) + v * a
+        end
+    end
+    lv(raw_items)
+end
+
+function Brain.recipe_to_raw_items(recipe)
+    local ings = recipe.ingredients
+    local raw = {}
+    for _, ing in ipairs(ings) do
+        local ingprot = game.recipe_prototypes[ing.name]
+        if ingprot and ingprot.allow_decomposition then
+            for k, v in pairs(Brain.recipe_to_raw_items(ingprot)) do
+                raw[k] = (raw[k] or 0) + v * ing.amount
+            end
+        else
+            raw[ing.name] = (raw[ing.name] or 0) + ing.amount
+        end
+    end
+    return raw
+end
+
 function Brain.step()
-    local steps = {[1] = Brain.boot1, [2] = Brain.boot2}
+    local steps = {
+        [1] = Brain.boot1,
+        [2] = Brain.boot2,
+        [3] = Brain.electricity
+    }
     (steps[global.brain_step] or function() end)()
     global.brain_step = global.brain_step + 1
 end
