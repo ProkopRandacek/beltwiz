@@ -56,11 +56,8 @@ end
 function Brain.dump_workers()
 	for _, w in ipairs(global.workers) do
 		for name, count in pairs(w.future.inv) do
-			if count ~= 0 then
-				lv('puttask', name, count)
-				local t = Task.put(name, count, global.chest, defines.inventory.chest)
-				Worker.enqueue(w, t)
-			end
+			local t = Task.put(name, count, global.chest, defines.inventory.chest)
+			Worker.enqueue(w, t)
 		end
 	end
 end
@@ -97,7 +94,6 @@ end
 
 -- what do i want from the recipe and how many
 function Brain.recipe_to_raw_items(item, amount)
-	lv(item, amount)
 	local possible_recipes = game.get_filtered_recipe_prototypes {
 		{
 			filter = "has-product-item",
@@ -107,7 +103,6 @@ function Brain.recipe_to_raw_items(item, amount)
 
 	local recipe = possible_recipes[item] -- maybe we could be smarter about this at some point
 	if recipe == nil then
-		lv(item, amount)
 		return { [item] = amount }
 	end
 

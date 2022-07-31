@@ -48,6 +48,19 @@ function Worker.new()
 	return self
 end
 
+function Worker.add_future_item(self, item, amount)
+	local amount = amount or 1
+	self.future.inv[item] = (self.future.inv[item] or 0) + amount
+end
+
+function Worker.remove_future_item(self, item, amount)
+	local amount = amount or 1
+	self.future.inv[item] = self.future.inv[item] - amount
+	if self.future.inv[item] == 0 then
+		self.future.inv[item] = nil
+	end
+end
+
 function Worker.update_future(self, task)
 	local time_cost = Worker.relative_task_price(self, task)
 
@@ -59,21 +72,20 @@ function Worker.update_future(self, task)
 	local function updinv(t)
 		if t.type == 'mine' then
 			for _, p in ipairs(t.entity.prototype.mineable_properties.products or {}) do
-				self.future.inv[p.name] = (self.future.inv[p.name] or 0) + p.amount
-				lv('mine:', p.name, p.amount, self.future.inv)
+				Worker.add_future_item(self, p.name, p.amount)
 			end
 		elseif t.type == 'place' then
-			self.future.inv[t.item] = self.future.inv[t.item] - 1
+			Worker.remove_future_item(self, t.item, 1)
 		elseif t.type == 'craft' then
 			local recipe_prototype = game.recipe_prototypes[t.item]
 			for _, i in ipairs(recipe_prototype.ingredients) do
-				self.future.inv[i.name] = self.future.inv[i.name] - i.amount
+				Worker.remove_future_item(self, i.name, i.amount)
 			end
 			for _, p in ipairs(recipe_prototype.products) do
-				self.future.inv[p.name] = (self.future.inv[p.name] or 0) + p.amount
+				Worker.add_future_item(self, p.name, p.amount)
 			end
 		elseif t.type == 'put' then
-			self.future.inv[t.item] = self.future.inv[t.item] - t.count
+			Worker.remove_future_item(self, t.item, t.count)
 		elseif t.type == 'seq' then
 			for _, st in ipairs(t.tasks) do
 				updinv(st)
