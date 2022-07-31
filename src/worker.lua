@@ -12,19 +12,28 @@ function Worker.new()
 		direction = 3,
 		force = 'player'
 	}
+
 	self.entity.insert({ name = 'burner-mining-drill', count = 1 }) -- the starting inventory
 	self.entity.insert({ name = 'stone-furnace', count = 1 })
 	self.entity.color = { r = 103 / 255, g = 176 / 255, b = 232 / 255 }
 
 	self.active_task = false
 	self.queue = {}
+
 	self.dead = false
-	self.pos_acc = self.entity.position
-	self.time_acc = game.tick
 	self.crafting = false
 
 	self.mining = false
 	self.last_mine_progress = 2
+
+	self.future = {
+		inv = {
+			['burner-mining-drill'] = 1,
+			['stone-furnace'] = 1
+		},
+		pos = self.entity.position,
+		time = game.tick
+	}
 
 	self.index = #global.workers
 
@@ -39,10 +48,45 @@ function Worker.new()
 	return self
 end
 
-function Worker.enqueue(self, task)
+function Worker.update_future(self, task)
 	local time_cost = Worker.relative_task_price(self, task)
-	self.time_acc = self.time_acc + time_cost
-	self.pos_acc = task.pos or { 0, 0 }
+
+	self.future.time = self.future.time + time_cost
+	if task.pos then
+		self.future.pos = task.pos
+	end
+
+	local function updinv(t)
+		if t.type == 'mine' then
+			for _, p in ipairs(t.entity.prototype.mineable_properties.products or {}) do
+				self.future.inv[p.name] = (self.future.inv[p.name] or 0) + p.amount
+				lv('mine:', p.name, p.amount, self.future.inv)
+			end
+		elseif t.type == 'place' then
+			self.future.inv[t.item] = self.future.inv[t.item] - 1
+		elseif t.type == 'craft' then
+			local recipe_prototype = game.recipe_prototypes[t.item]
+			for _, i in ipairs(recipe_prototype.ingredients) do
+				self.future.inv[i.name] = self.future.inv[i.name] - i.amount
+			end
+			for _, p in ipairs(recipe_prototype.products) do
+				self.future.inv[p.name] = (self.future.inv[p.name] or 0) + p.amount
+			end
+		elseif t.type == 'put' then
+			self.future.inv[t.item] = self.future.inv[t.item] - t.count
+		elseif t.type == 'seq' then
+			for _, st in ipairs(t.tasks) do
+				updinv(st)
+			end
+		end
+	end
+
+	updinv(task)
+end
+
+function Worker.enqueue(self, task)
+	Worker.update_future(self, task)
+
 	table.insert(self.queue, task)
 end
 
@@ -53,7 +97,7 @@ end
 
 function Worker.predict_travel_time(self, pos, pos_override)
 	if not pos then return 0 end
-	local self_pos = pos_override or self.pos_acc
+	local self_pos = pos_override or self.future.pos
 	local x1, y1 = self_pos.x or self_pos[1], self_pos.y or self_pos[2]
 	local x2, y2 = pos.x or pos[1], pos.y or pos[2]
 	local dx = math.abs(x1 - x2)
@@ -106,7 +150,7 @@ function Worker.relative_task_price(self, task, pos_override)
 end
 
 function Worker.absolute_task_price(self, task)
-	local time_base = math.max(self.time_acc, game.tick)
+	local time_base = math.max(self.future.time, game.tick)
 	return time_base + Worker.relative_task_price(self, task)
 end
 

@@ -55,9 +55,12 @@ end
 
 function Brain.dump_workers()
 	for _, w in ipairs(global.workers) do
-		for name, count in pairs(w.entity.get_inventory(defines.inventory.character_main).get_contents()) do
-			local t = Task.put(name, count, global.chest, defines.inventory.chest)
-			Worker.enqueue(w, t)
+		for name, count in pairs(w.future.inv) do
+			if count ~= 0 then
+				lv('puttask', name, count)
+				local t = Task.put(name, count, global.chest, defines.inventory.chest)
+				Worker.enqueue(w, t)
+			end
 		end
 	end
 end
@@ -69,8 +72,8 @@ function Brain.circle(c)
 		local n = #global.workers
 		for i, w in ipairs(global.workers) do
 			Worker.enqueue(w, Task.walk {
-				x = math.sin(((i + Brain.circle_s) / n) * 2 * math.pi) * 2 + 0.5,
-				y = math.cos(((i + Brain.circle_s) / n) * 2 * math.pi) * 2 + 0.5
+				x = math.sin(((i + Brain.circle_s) / n) * 2 * math.pi) * 3 + 0.5,
+				y = math.cos(((i + Brain.circle_s) / n) * 2 * math.pi) * 3 + 0.5
 			})
 		end
 	end
@@ -89,6 +92,7 @@ function Brain.electricity()
 		end
 	end
 	for item, amount in pairs(raw_items) do Brain.gather(item, amount) end
+	Brain.dump_workers()
 end
 
 -- what do i want from the recipe and how many
@@ -144,8 +148,7 @@ function Brain.step()
 		[1] = Brain.boot1,
 		[2] = Brain.boot2,
 		[3] = Brain.electricity,
-		[4] = Brain.dump_workers,
-		[5] = Brain.circle
+		[4] = Brain.circle
 	}
 	(steps[global.brain_step] or function() end)()
 	global.brain_step = global.brain_step + 1
