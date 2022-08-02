@@ -39,7 +39,7 @@ commands.add_command('waila', nil, function()
 end)
 
 commands.add_command('bw-test', nil, function()
-	lv(Brain.recipe_to_raw_items('electric-mining-drill', 1))
+	Worker.new()
 end)
 
 commands.add_command('bww-come', nil, function(command)

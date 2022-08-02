@@ -1,7 +1,17 @@
 require('util')
 Task = {}
 
-function Task.walk(pos) return { type = 'walk', pos = pos } end
+function Task.walk(pos)
+	local x = pos.x or pos[1]
+	local y = pos.y or pos[2]
+	x = math.floor(x + 0.5)
+	y = math.floor(y + 0.5)
+
+	return {
+		type = 'walk',
+		pos = { x, y }
+	}
+end
 
 function Task.place(item, pos, dir)
 	local item_prototype = game.item_prototypes[item]

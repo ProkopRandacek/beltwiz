@@ -16,6 +16,9 @@ function Worker.new()
 	self.entity.insert({ name = 'burner-mining-drill', count = 1 }) -- the starting inventory
 	self.entity.insert({ name = 'stone-furnace', count = 1 })
 	self.entity.color = { r = 103 / 255, g = 176 / 255, b = 232 / 255 }
+	self.entity.character_running_speed_modifier = 0.0
+
+	self.tiles_per_tick = 0.1484375
 
 	self.active_task = false
 	self.queue = {}
@@ -49,12 +52,12 @@ function Worker.new()
 end
 
 function Worker.add_future_item(self, item, amount)
-	local amount = amount or 1
+	amount = amount or 1
 	self.future.inv[item] = (self.future.inv[item] or 0) + amount
 end
 
 function Worker.remove_future_item(self, item, amount)
-	local amount = amount or 1
+	amount = amount or 1
 	self.future.inv[item] = self.future.inv[item] - amount
 	if self.future.inv[item] == 0 then
 		self.future.inv[item] = nil
@@ -63,6 +66,7 @@ end
 
 function Worker.update_future(self, task)
 	local time_cost = Worker.relative_task_price(self, task)
+	task.done_time = time_cost + game.tick
 
 	self.future.time = self.future.time + time_cost
 	if task.pos then
@@ -118,9 +122,9 @@ function Worker.predict_travel_time(self, pos, pos_override)
 	local longer_side = math.max(dx, dy)
 	local diagonal_path = math.sqrt((shorter_side ^ 2) * 2)
 	local straight_path = longer_side - shorter_side
-	local path = diagonal_path + straight_path
-	local time = path / self.entity.character_running_speed
-	return time
+	local straight_time = math.floor(straight_path / self.tiles_per_tick)
+	local diagonal_time = math.floor(diagonal_path / self.tiles_per_tick)
+	return straight_time + diagonal_time
 end
 
 function Worker.predict_mine_time(self, entity)
@@ -172,7 +176,7 @@ function Worker.prepare_task(self)
 	if self.active_task.type == 'seq' then return true end
 
 	local distance = dist(self.entity.position, self.active_task.pos)
-	local too_far = distance > 0.3
+	local too_far = distance > (self.tiles_per_tick * 2.0)
 	self.entity.walking_state = {
 		walking = too_far,
 		direction = dir(self.entity.position, self.active_task.pos)
@@ -308,7 +312,9 @@ function Worker.tick(self)
 			-- waiting for task preparation
 		else
 			local done = Worker.do_task(self)
-			if done then self.active_task = false end
+			if done then
+				self.active_task = false
+			end
 		end
 	end
 
